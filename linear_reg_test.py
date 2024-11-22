@@ -12,7 +12,7 @@ spark = SparkSession.builder.appName("ElectionPredictionTesting").getOrCreate()
 
 # Load the saved Linear Regression model from HDFS
 model_path = "hdfs://localhost:9000/election_data/linear_regression_models"
-candidate_id = "bd7098b3-4a02-4c6c-87a5-b5c96a5619a0"  # Replace with the candidate you're testing
+candidate_id = "940da220-a451-4cc9-acc5-ce8b8697542a"  # Replace with the candidate you're testing
 model = LinearRegressionModel.load(f"{model_path}/lr_candidate_{candidate_id}.model")
 
 # Load the test data
@@ -34,7 +34,8 @@ window_spec = Window.partitionBy("candidate_id").orderBy("hour", "minute").rowsB
 
 # Calculate cumulative votes
 test_data = test_data.withColumn("cumulative_votes", F.sum("votes").over(window_spec))
-
+test_data.show(truncate=False)
+test_data.printSchema()
 # Prepare the features (same as during training)
 assembler = VectorAssembler(inputCols=["hour", "minute"], outputCol="features")
 test_data = assembler.transform(test_data)

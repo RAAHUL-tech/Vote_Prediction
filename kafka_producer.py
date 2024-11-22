@@ -22,7 +22,7 @@ def generate_voting_data(voters, candidates, num_votes=9000):
         voter_id = voters.iloc[i % len(voters)]['Voter_id']
         candidate_id = random.choice(candidates['Candidate_id'])
 
-        # Increment the time by 1 second for each vote
+        # Increment the time by 3 second for each vote
         vote_time = start_time + datetime.timedelta(seconds=i*3)
 
         # Generate a placeholder for voter_image
@@ -47,7 +47,7 @@ def send_to_kafka(voting_data, topic_name='voting_data'):
     count = 0
     # Send each record to Kafka with a delay of 10 seconds
     for _, record in voting_data.iterrows():
-        if count>1:
+        if count>20:
             break
         producer.send(topic_name, record.to_dict())
         print(f"Sent to Kafka: {record.to_dict()}")
