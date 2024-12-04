@@ -47,7 +47,7 @@ def send_to_kafka(voting_data, topic_name='voting_data'):
     count = 0
     # Send each record to Kafka with a delay of 10 seconds
     for _, record in voting_data.iterrows():
-        if count>1210:
+        if count>1200:
             break
         producer.send(topic_name, record.to_dict())
         print(f"Sent to Kafka: {record.to_dict()}")

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-file_path = 'debug_data/predictions_candidate_940da220-a451-4cc9-acc5-ce8b8697542a.csv/part-00000-c946dcf4-ae16-49cb-b924-ce857a8ffe33-c000.csv'
+file_path = 'linear_reg_plot_data/predictions_candidate_940da220-a451-4cc9-acc5-ce8b8697542a.csv/part-00000-f4a13847-a97a-4eaa-bc16-e56f071ae2e8-c000.csv'
 voting_data = pd.read_csv(file_path)
 # Create a 'Vote_Time' column by combining 'hour' and 'minute', assuming seconds as '00'
 voting_data['Vote_Time'] = pd.to_datetime(

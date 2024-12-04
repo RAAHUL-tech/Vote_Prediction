@@ -1,4 +1,5 @@
 import json
+from kafka import KafkaProducer
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 from pyspark.sql import SparkSession
@@ -15,7 +16,7 @@ import joblib
 from statsmodels.tsa.arima.model import ARIMA
 from pyspark.ml.regression import LinearRegressionModel
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyspark.ml.feature import VectorAssembler
 
 # Kafka consumer setup
@@ -30,11 +31,29 @@ def consume_kafka_messages(topic_name='voting_data', group_id='voting_consumer_g
     )
     return consumer
 
+# Kafka producer setup
+def create_kafka_producer():
+    producer = KafkaProducer(
+        bootstrap_servers=['localhost:9092'],
+        value_serializer=lambda x: json.dumps(x).encode('utf-8')
+    )
+    return producer
+
+# Function to send data to Kafka
+def send_to_kafka(producer, topic, message):
+    try:
+        producer.send(topic, value=message)
+        producer.flush()
+        print(f"Message sent to Kafka topic: {topic}")
+    except Exception as e:
+        print(f"Error sending message to Kafka: {e}")
+
 
 def load_facenet_model():
     mtcnn = MTCNN(keep_all=False)
     inception_resnet = InceptionResnetV1(pretrained='vggface2').eval()
     return mtcnn, inception_resnet
+
 
 
 def preprocess_image(img_url):
@@ -46,7 +65,6 @@ def preprocess_image(img_url):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for FaceNet
         # Resize image to (160, 160) for FaceNet model
         img = cv2.resize(img, (160, 160))
-        print("Processed Image shape:", img.shape)
         return img
     else:
         print(f"Failed to retrieve image from URL: {img_url}")
@@ -147,7 +165,7 @@ def load_arima_models(candidate_ids):
     return arima_models
 
 
-def train_and_forecast(candidate_id, historical_data, arima_models):
+def train_and_forecast(candidate_id, historical_data, arima_models, producer):
     """
     Train the ARIMA model for a candidate and forecast the next 10 minutes.
     """
@@ -155,6 +173,32 @@ def train_and_forecast(candidate_id, historical_data, arima_models):
     arima_models[candidate_id] = model
     forecast = model.forecast(steps=45)
     print(f"ARIMA Predictions for Candidate {candidate_id}: {forecast}")
+    topic_name = f"data_{candidate_id}"
+    forecast_data = forecast.tolist()
+    print(forecast_data)
+    historical_data['vote_time'] = historical_data['vote_time'].astype(str)
+    historical_data_for_kafka = historical_data.to_dict(orient='records')
+    print(historical_data_for_kafka)
+    # Get the last timestamp from the historical data
+    last_time_str = historical_data.iloc[-1]['vote_time']
+    print("lsttime", last_time_str)
+    last_time = datetime.strptime(last_time_str, "%Y-%m-%d %H:%M:%S")
+    print("lsttime", last_time)
+    # Create timestamps for forecasted values
+    forecast_interval = timedelta(minutes=1)
+    forecast_with_timestamps = []
+
+    for i, value in enumerate(forecast):
+        next_time = last_time + (i + 1) * forecast_interval
+        forecast_with_timestamps.append({'time': next_time.strftime("%Y-%m-%d %H:%M:%S"), 'votes': value})
+
+    kafka_message = {
+        'candidate_id': candidate_id,
+        'forecast': forecast_with_timestamps,
+        'historical_data': historical_data_for_kafka
+    }
+    print("Kafka_message",kafka_message)
+    send_to_kafka(producer, topic_name, kafka_message)
     return forecast
 
 
@@ -219,6 +263,7 @@ def main():
         .config("spark.executor.memory", "2g") \
         .config("spark.driver.memory", "2g") \
         .getOrCreate()
+    producer = create_kafka_producer()
     make_predictions(spark, debug_dir)
     mtcnn, inception_resnet = load_facenet_model()  # Load the pre-trained FaceNet model
     candidate_ids = ["940da220-a451-4cc9-acc5-ce8b8697542a", "4714f68f-d08a-4f68-8a92-0be8f94687c0", "bd7098b3-4a02-4c6c-87a5-b5c96a5619a0"]
@@ -259,9 +304,7 @@ def main():
         # Update cumulative votes
         vote_time_obj = datetime.strptime(vote_time, "%Y-%m-%d %H:%M:%S")
         running_totals[candidate_id] += 1
-        print("Running total for ", candidate_id, "is ", running_totals[candidate_id])
         cumulative_votes[candidate_id].append((vote_time_obj, running_totals[candidate_id]))
-        print("Cumulative votes for ", candidate_id, "is ", cumulative_votes[candidate_id])
         # Every 10 minutes, train and forecast
         if vote_time_obj.minute == 0 and vote_time_obj.hour != 8 and vote_time_obj.hour != last_executed_hour:
             print("Training ARIMA models for all candidates...")
@@ -279,13 +322,10 @@ def main():
                     # Validate cumulative votes to ensure correctness
                     if (historical_data["cumulative_votes"].diff() < 0).any():
                         print(f"Warning: Cumulative votes decrease for candidate {cid}. Check input data!")
-                    print(historical_data.tail())
-                    print(historical_data['cumulative_votes'].isnull().sum())
-                    print(len(historical_data['cumulative_votes']))
                     # Save historical data to CSV for debugging
                     historical_csv_path = os.path.join(debug_dir, f"historical_data_{cid}.csv")
                     historical_data.to_csv(historical_csv_path, index=False)
-                    futures[cid] = executor.submit(train_and_forecast, cid, historical_data, arima_models)
+                    futures[cid] = executor.submit(train_and_forecast, cid, historical_data, arima_models, producer)
 
                 # Collect forecasts with enhanced debugging
                 forecasts = {}
@@ -325,7 +365,7 @@ def main():
             print(f"Failed to commit offset for voter_id {voter_id}: {e}")
 
     spark.stop()
-
+    producer.close()
 
 if __name__ == "__main__":
     main()
