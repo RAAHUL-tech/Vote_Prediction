@@ -194,7 +194,7 @@ def main():
 
         # Continuously update the plot
         plot_data()
-        time.sleep(1)  # Prevent excessive reruns
+        time.sleep(100)  # Prevent excessive reruns
 
 if __name__ == "__main__":
     main()

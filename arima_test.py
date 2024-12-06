@@ -2,8 +2,7 @@ from pyspark.sql import SparkSession
 import joblib
 import pandas as pd
 import os
-from datetime import datetime, timedelta
-from statsmodels.tsa.arima.model import ARIMA
+from datetime import datetime
 
 # ARIMA model testing
 # Initialize Spark Session

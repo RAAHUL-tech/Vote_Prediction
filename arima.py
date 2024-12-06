@@ -38,7 +38,7 @@ file_paths = [
     "hdfs://localhost:9000/election_data/voting_data2020.csv"
 ]
 
-#Process each file individually and train an ARIMA model for each
+#Process each file individually and train an ARIMA model for each candidate
 arima_models = {}
 
 for file_path in file_paths:

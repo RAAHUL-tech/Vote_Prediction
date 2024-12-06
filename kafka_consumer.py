@@ -31,7 +31,7 @@ def consume_kafka_messages(topic_name='voting_data', group_id='voting_consumer_g
     )
     return consumer
 
-# Kafka producer setup
+# Kafka producer setup for all candidates to send data to frontend
 def create_kafka_producer():
     producer = KafkaProducer(
         bootstrap_servers=['localhost:9092'],
@@ -39,7 +39,7 @@ def create_kafka_producer():
     )
     return producer
 
-# Function to send data to Kafka
+# Function to send data to Kafka for updating frontend
 def send_to_kafka(producer, topic, message):
     try:
         producer.send(topic, value=message)
@@ -48,14 +48,14 @@ def send_to_kafka(producer, topic, message):
     except Exception as e:
         print(f"Error sending message to Kafka: {e}")
 
-
+#Load a pretrained MTCNN model to extract features from images
 def load_facenet_model():
     mtcnn = MTCNN(keep_all=False)
     inception_resnet = InceptionResnetV1(pretrained='vggface2').eval()
     return mtcnn, inception_resnet
 
 
-
+#Function to Preprocess the images
 def preprocess_image(img_url):
     # Retrieve the image from the URL
     response = requests.get(img_url)
@@ -127,7 +127,7 @@ def retrieve_voter_image_from_hdfs(voter_id, spark):
     except:
         print("Error")
 
-
+#Function to train arima model for each candidate based on real time data
 def train_arima_model(candidate_id, historical_data):
     """
     Train and save an ARIMA model for a specific candidate.
@@ -167,7 +167,7 @@ def load_arima_models(candidate_ids):
 
 def train_and_forecast(candidate_id, historical_data, arima_models, producer):
     """
-    Train the ARIMA model for a candidate and forecast the next 10 minutes.
+    Train the ARIMA model for a candidate and forecast the next 45 minutes.
     """
     model = train_arima_model(candidate_id, historical_data)
     arima_models[candidate_id] = model
@@ -181,9 +181,7 @@ def train_and_forecast(candidate_id, historical_data, arima_models, producer):
     print(historical_data_for_kafka)
     # Get the last timestamp from the historical data
     last_time_str = historical_data.iloc[-1]['vote_time']
-    print("lsttime", last_time_str)
     last_time = datetime.strptime(last_time_str, "%Y-%m-%d %H:%M:%S")
-    print("lsttime", last_time)
     # Create timestamps for forecasted values
     forecast_interval = timedelta(minutes=1)
     forecast_with_timestamps = []

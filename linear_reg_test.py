@@ -5,7 +5,6 @@ from pyspark.sql.functions import col, hour, minute, to_timestamp
 from pyspark.sql.window import Window
 from pyspark.sql import functions as F
 from pyspark.ml.evaluation import RegressionEvaluator
-import os
 
 # Initialize Spark Session
 spark = SparkSession.builder.appName("ElectionPredictionTesting").getOrCreate()

@@ -3,7 +3,6 @@ import random
 import datetime
 from kafka import KafkaProducer
 import json
-import time
 
 
 # Load voters and candidates data

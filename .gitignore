@@ -1,3 +1,7 @@
 .venv
 .idea
 debug_data
+linear_reg_plot_data
+voting_data
+voter_data.csv
+candidate_data.csv
