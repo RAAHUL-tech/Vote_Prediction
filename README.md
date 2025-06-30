@@ -2,7 +2,7 @@
 
 Real Time Vote analysis using Kafka, Spark and HDFS
 
-##Requirements
+## Requirements
 1. Python 3.8
 2. Java 1.8
 3. Apache Kafka
@@ -11,7 +11,7 @@ Real Time Vote analysis using Kafka, Spark and HDFS
 
 Clone the repository and create a virtual environment using the command ```python -m venv .venv```. To activate the virtual environment run ```.venv\Scripts\activate```. Run ```pip install -r requirements.txt``` to install necessary dependencies on your virtual environment.
 
-##Phase 1 : Historical Data Analysis
+## Phase 1 : Historical Data Analysis
 Step 1: Start the hadoop cluster by running ```start-all.cmd``` on your terminal. 
 
 Step 2: To generate the Voters and candidate data using randomuser API run the following commands, ```python generate_voters_data.py```, ```python generate_candidate_data.py```.
@@ -27,7 +27,7 @@ Step 1: Generate the Voters and candidate data using randomuser API run the foll
 
 Step 2: To train the ARIMA model run ```python arima.py```. To predict the future time frames run ```python arima_test.py```. To visualize the predicted time frames run ```python arima_plot.py```.
 
-##Phase 2 : Real time Data Analysis with kafka integration
+## Phase 2 : Real time Data Analysis with kafka integration
 Step 1: Start the hadoop cluster by running ```start-all.cmd``` on your terminal. Start the kafka server by running ```.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties``` and ```.\bin\windows\kafka-server-start.bat .\config\server.properties``` in different terminals.
 
 Step 2: Create necessary kafka topics by running the following commands, ```kafka-topics.bat --bootstrap-server localhost:9092 --create --topic voting_data``` , ```kafka-topics.bat --bootstrap-server localhost:9092 --create --topic data_<candidate_id>```.
